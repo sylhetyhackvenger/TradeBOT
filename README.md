@@ -6,7 +6,7 @@ TradeBOT is a mini AI-powered candlestick prediction tool that analyzes OHLC dat
 
 TradeBOT is a professional Flask-based candlestick pattern recognition and market prediction application designed for traders, developers, and financial researchers. It analyzes OHLC (Open, High, Low, Close) candle data to identify more than **25 classic candlestick patterns**, evaluate recent market behavior, and generate an intelligent prediction for the next candle direction.
 
-Unlike basic pattern detectors, TradeBOT includes a lightweight **pattern memory engine** that records previously detected pattern sequences and attempts to forecast future movements based on historical repetition. The application estimates candle strength, classifies market direction as **BUY**, **SELL**, or **HOLD**, and provides an easy-to-understand confidence score.
+Unlike basic pattern detectors. TradeBOT includes a lightweight **pattern memory engine** that records previously detected pattern sequences and attempts to forecast future movements based on historical repetition. The application estimates candle strength, classifies market direction as **BUY**, **SELL**, or **HOLD**, and provides an easy-to-understand confidence score.
 
 The interface features a modern cinematic trading dashboard with an animated candlestick background, responsive glassmorphism UI, optional chart screenshot upload, and real-time prediction results. Built entirely in Python using Flask, OpenCV, NumPy, and JavaScript, it is lightweight, fast, and suitable for local deployment, educational research, trading experiments, and further AI integration.
 
