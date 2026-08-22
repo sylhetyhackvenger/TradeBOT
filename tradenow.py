@@ -12,7 +12,8 @@ import cv2
 from collections import deque, Counter
 from flask import Flask, request, jsonify, render_template_string
 
-# ---------- Pattern detection functions (same as before) ----------
+SYLHETYHACKVENGER = "SYLHETYHACKVENGER (THE-ERROR808)"
+
 def body_length(c):
     return abs(c['close'] - c['open'])
 
@@ -35,11 +36,15 @@ def is_spinning_top(c, ratio=0.4):
     return body_length(c) < ratio * (c['high'] - c['low'])
 
 def is_hammer(c):
-    b = body_length(c); ls = lower_shadow(c); us = upper_shadow(c)
+    b = body_length(c)
+    ls = lower_shadow(c)
+    us = upper_shadow(c)
     return (ls > 2*b) and (us < 0.3*b) and (c['close'] < c['open'] + 0.5*b)
 
 def is_inverted_hammer(c):
-    b = body_length(c); us = upper_shadow(c); ls = lower_shadow(c)
+    b = body_length(c)
+    us = upper_shadow(c)
+    ls = lower_shadow(c)
     return (us > 2*b) and (ls < 0.3*b) and (c['close'] < c['open'] + 0.5*b)
 
 def is_marubozu(c, tol=0.1):
@@ -79,13 +84,17 @@ def is_tweezer_top(c1, c2, tol=0.01):
     return abs(c1['high'] - c2['high']) <= tol * (c1['high'] - c1['low'])
 
 def is_morning_star(c1, c2, c3):
-    if not is_bearish(c1) or not is_bullish(c3): return False
-    if body_length(c2) > 0.5*body_length(c1): return False
+    if not is_bearish(c1) or not is_bullish(c3):
+        return False
+    if body_length(c2) > 0.5*body_length(c1):
+        return False
     return (c2['high'] < c1['close']) and (c3['open'] > c2['high']) and (c3['close'] > (c1['open']+c1['close'])/2)
 
 def is_evening_star(c1, c2, c3):
-    if not is_bullish(c1) or not is_bearish(c3): return False
-    if body_length(c2) > 0.5*body_length(c1): return False
+    if not is_bullish(c1) or not is_bearish(c3):
+        return False
+    if body_length(c2) > 0.5*body_length(c1):
+        return False
     return (c2['high'] < c1['close']) and (c3['open'] > c2['high']) and (c3['close'] < (c1['open']+c1['close'])/2)
 
 def is_three_white_soldiers(c1, c2, c3):
@@ -113,70 +122,106 @@ def is_three_outside_down(c1, c2, c3):
     return is_bullish(c1) and is_bearish_engulfing(c1, c2) and is_bearish(c3) and (c3['close'] < c2['low'])
 
 def is_rising_three_method(c1, c2, c3, c4, c5):
-    if not is_bullish(c1) or not is_bullish(c5) or c5['close'] < c1['high']: return False
+    if not is_bullish(c1) or not is_bullish(c5) or c5['close'] < c1['high']:
+        return False
     for c in [c2,c3,c4]:
-        if is_bullish(c): return False
-        if c['high'] > c1['high'] or c['low'] < c1['low']: return False
+        if is_bullish(c):
+            return False
+        if c['high'] > c1['high'] or c['low'] < c1['low']:
+            return False
     return True
 
 def is_falling_three_method(c1, c2, c3, c4, c5):
-    if not is_bearish(c1) or not is_bearish(c5) or c5['close'] > c1['low']: return False
+    if not is_bearish(c1) or not is_bearish(c5) or c5['close'] > c1['low']:
+        return False
     for c in [c2,c3,c4]:
-        if is_bearish(c): return False
-        if c['high'] > c1['high'] or c['low'] < c1['low']: return False
+        if is_bearish(c):
+            return False
+        if c['high'] > c1['high'] or c['low'] < c1['low']:
+            return False
     return True
 
-def is_gap_up(p, c): return c['low'] > p['high']
-def is_gap_down(p, c): return c['high'] < p['low']
+def is_gap_up(p, c):
+    return c['low'] > p['high']
+
+def is_gap_down(p, c):
+    return c['high'] < p['low']
 
 def detect_single(c):
     pat = []
-    if is_doji(c): pat.append("Doji")
-    if is_spinning_top(c): pat.append("Spinning Top")
-    if is_hammer(c): pat.append("Hammer")
-    if is_inverted_hammer(c): pat.append("Inverted Hammer")
+    if is_doji(c):
+        pat.append("Doji")
+    if is_spinning_top(c):
+        pat.append("Spinning Top")
+    if is_hammer(c):
+        pat.append("Hammer")
+    if is_inverted_hammer(c):
+        pat.append("Inverted Hammer")
     if is_marubozu(c):
         pat.append("Bullish Marubozu" if is_bullish(c) else "Bearish Marubozu")
-    if is_dragonfly_doji(c): pat.append("Dragonfly Doji")
-    if is_gravestone_doji(c): pat.append("Gravestone Doji")
+    if is_dragonfly_doji(c):
+        pat.append("Dragonfly Doji")
+    if is_gravestone_doji(c):
+        pat.append("Gravestone Doji")
     return pat
 
 def detect_two(p, c):
     pat = []
-    if is_bullish_engulfing(p, c): pat.append("Bullish Engulfing")
-    if is_bearish_engulfing(p, c): pat.append("Bearish Engulfing")
-    if is_bullish_harami(p, c): pat.append("Bullish Harami")
-    if is_bearish_harami(p, c): pat.append("Bearish Harami")
-    if is_piercing(p, c): pat.append("Piercing Pattern")
-    if is_dark_cloud_cover(p, c): pat.append("Dark Cloud Cover")
-    if is_tweezer_bottom(p, c): pat.append("Tweezer Bottom")
-    if is_tweezer_top(p, c): pat.append("Tweezer Top")
-    if is_gap_up(p, c): pat.append("Gap Up")
-    if is_gap_down(p, c): pat.append("Gap Down")
+    if is_bullish_engulfing(p, c):
+        pat.append("Bullish Engulfing")
+    if is_bearish_engulfing(p, c):
+        pat.append("Bearish Engulfing")
+    if is_bullish_harami(p, c):
+        pat.append("Bullish Harami")
+    if is_bearish_harami(p, c):
+        pat.append("Bearish Harami")
+    if is_piercing(p, c):
+        pat.append("Piercing Pattern")
+    if is_dark_cloud_cover(p, c):
+        pat.append("Dark Cloud Cover")
+    if is_tweezer_bottom(p, c):
+        pat.append("Tweezer Bottom")
+    if is_tweezer_top(p, c):
+        pat.append("Tweezer Top")
+    if is_gap_up(p, c):
+        pat.append("Gap Up")
+    if is_gap_down(p, c):
+        pat.append("Gap Down")
     return pat
 
 def detect_three(c1,c2,c3):
     pat = []
-    if is_morning_star(c1,c2,c3): pat.append("Morning Star")
-    if is_evening_star(c1,c2,c3): pat.append("Evening Star")
-    if is_three_white_soldiers(c1,c2,c3): pat.append("Three White Soldiers")
-    if is_three_black_crows(c1,c2,c3): pat.append("Three Black Crows")
-    if is_three_inside_up(c1,c2,c3): pat.append("Three Inside Up")
-    if is_three_inside_down(c1,c2,c3): pat.append("Three Inside Down")
-    if is_three_outside_up(c1,c2,c3): pat.append("Three Outside Up")
-    if is_three_outside_down(c1,c2,c3): pat.append("Three Outside Down")
+    if is_morning_star(c1,c2,c3):
+        pat.append("Morning Star")
+    if is_evening_star(c1,c2,c3):
+        pat.append("Evening Star")
+    if is_three_white_soldiers(c1,c2,c3):
+        pat.append("Three White Soldiers")
+    if is_three_black_crows(c1,c2,c3):
+        pat.append("Three Black Crows")
+    if is_three_inside_up(c1,c2,c3):
+        pat.append("Three Inside Up")
+    if is_three_inside_down(c1,c2,c3):
+        pat.append("Three Inside Down")
+    if is_three_outside_up(c1,c2,c3):
+        pat.append("Three Outside Up")
+    if is_three_outside_down(c1,c2,c3):
+        pat.append("Three Outside Down")
     return pat
 
 def detect_five(c1,c2,c3,c4,c5):
     pat = []
-    if is_rising_three_method(c1,c2,c3,c4,c5): pat.append("Rising Three Method")
-    if is_falling_three_method(c1,c2,c3,c4,c5): pat.append("Falling Three Method")
+    if is_rising_three_method(c1,c2,c3,c4,c5):
+        pat.append("Rising Three Method")
+    if is_falling_three_method(c1,c2,c3,c4,c5):
+        pat.append("Falling Three Method")
     return pat
 
 def detect_all(ohlc_list):
     patterns = []
     n = len(ohlc_list)
-    if n == 0: return patterns
+    if n == 0:
+        return patterns
     patterns.extend(detect_single(ohlc_list[-1]))
     if n >= 2:
         patterns.extend(detect_two(ohlc_list[-2], ohlc_list[-1]))
@@ -186,7 +231,6 @@ def detect_all(ohlc_list):
         patterns.extend(detect_five(ohlc_list[-5], ohlc_list[-4], ohlc_list[-3], ohlc_list[-2], ohlc_list[-1]))
     return list(set(patterns))
 
-# ---------- Pattern memory (to predict next pattern) ----------
 class PatternMemory:
     def __init__(self, max_hist=2000):
         self.history = deque(maxlen=max_hist)
@@ -210,7 +254,6 @@ class PatternMemory:
         freq = Counter(next_pats)
         return freq.most_common(1)[0][0]
 
-# ---------- Flask app ----------
 app = Flask(__name__)
 memory = PatternMemory()
 
@@ -236,6 +279,7 @@ HTML = """
         .signal-hold { border-left-color: #d29922; }
         .info { color: #8b949e; font-size: 0.9em; }
         .upload-area { border: 2px dashed #30363d; padding: 20px; text-align: center; border-radius: 8px; }
+        .author { color: #58a6ff; text-align: center; margin-top: 20px; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -264,6 +308,7 @@ HTML = """
         </div>
     </div>
     <div id="result">Enter 4 candles and click "Predict Next Candle".</div>
+    <div class="author">Developed by: SYLHETYHACKVENGER (THE-ERROR808)</div>
 
     <script>
         function analyze() {
@@ -302,7 +347,6 @@ HTML = """
             });
         }
 
-        // Image upload preview (just for visual)
         document.getElementById('imageUpload').addEventListener('change', function(e) {
             const reader = new FileReader();
             reader.onload = function(ev) {
@@ -330,20 +374,15 @@ def predict():
     if len(candles) < 4:
         return jsonify({'error': 'Need at least 4 candles'}), 400
 
-    # Convert to list of dicts with float values
     ohlc_list = [{'open': float(c['open']), 'high': float(c['high']), 'low': float(c['low']), 'close': float(c['close'])} for c in candles]
 
-    # Detect patterns in the sequence
     patterns = detect_all(ohlc_list)
     patterns_str = ', '.join(patterns) if patterns else 'None'
 
-    # Add to memory for future predictions
     memory.add(patterns)
 
-    # Predict next pattern from memory
     predicted_pattern = memory.predict_next()
     if predicted_pattern:
-        # Determine direction from pattern name
         pred_l = predicted_pattern.lower()
         if any(w in pred_l for w in ['hammer', 'bullish', 'engulfing', 'morning', 'piercing', 'marubozu', 'tweezer bottom', 'three white', 'rising']):
             direction = 'BUY'
@@ -356,7 +395,6 @@ def predict():
             confidence = 50
         pattern_name = predicted_pattern
     else:
-        # Fallback: use the last candle's direction
         last = ohlc_list[-1]
         if is_bullish(last):
             direction = 'BUY'
@@ -369,7 +407,6 @@ def predict():
             confidence = 50
         pattern_name = 'No clear pattern'
 
-    # Estimate size based on average body length of previous candles
     avg_body = np.mean([abs(c['close'] - c['open']) for c in ohlc_list])
     last_body = abs(ohlc_list[-1]['close'] - ohlc_list[-1]['open'])
     if last_body > 1.5 * avg_body:
@@ -388,8 +425,8 @@ def predict():
     })
 
 if __name__ == '__main__':
-    print("🌐 Starting server at http://localhost:5000")
-    print("📌 Enter OHLC of the last 4 candles and click Predict.")
-    print("   Optionally upload a chart screenshot for reference.")
+    print(f"🌐 Starting server at http://localhost:5000")
+    print(f"📌 Enter OHLC of the last 4 candles and click Predict.")
+    print(f"   Optionally upload a chart screenshot for reference.")
+    print(f"   Developed by: {SYLHETYHACKVENGER}")
     app.run(host='0.0.0.0', port=5000, debug=False)
- 
